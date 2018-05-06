@@ -27,7 +27,6 @@ let ``Valid MAC addresses correctly parsed`` () =
         let mac = MACAddress.create address
         Assert.True(mac.IsSome)
         let mac = mac.Value
-        let str = MACAddress.value mac
         Assert.Equal(MACAddress.value mac, address)
     )
 
