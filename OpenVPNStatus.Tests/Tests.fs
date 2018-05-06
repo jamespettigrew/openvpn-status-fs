@@ -4,6 +4,7 @@ open System
 open Xunit
 
 open OpenVPNStatus.Models
+open System.Net
 
 let validMACAddresses = [|
     "00:1A:2B:3C:4D:5E";
@@ -38,3 +39,30 @@ let ``Invalid MAC addresses return None`` () =
         let mac = MACAddress.create address
         Assert.True(mac.IsNone)
     )
+
+[<Fact>]
+let ``MAC address parsed as VirtualAddress.MAC`` () = 
+    let macAddressString = validMACAddresses.[0]
+    let virtualAddr = parseVirtualAddress macAddressString
+    Assert.True(virtualAddr.IsSome)
+
+    let virtualAddr = virtualAddr.Value
+    let macAddress = MACAddress.create macAddressString
+    Assert.Equal(virtualAddr, VirtualAddress.MAC macAddress.Value)
+
+[<Fact>]
+let ``IP address parsed as VirtualAddress.IP`` () = 
+    let ipAddressString = "192.168.0.1"
+    let virtualAddr = parseVirtualAddress ipAddressString
+    Assert.True(virtualAddr.IsSome)
+
+    let virtualAddr = virtualAddr.Value
+    let ipAddress = IPAddress.Parse(ipAddressString)
+    Assert.Equal(virtualAddr, VirtualAddress.IP ipAddress)
+
+
+[<Fact>]
+let ``Invalid virtual address parsed as None`` () = 
+    let invalid = "asfhjsjf"
+    let virtualAddr = parseVirtualAddress invalid
+    Assert.True(virtualAddr.IsNone)

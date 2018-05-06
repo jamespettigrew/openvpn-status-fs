@@ -1,6 +1,7 @@
 namespace OpenVPNStatus
 
 open System
+open System.Net
 open System.Text.RegularExpressions
 
 module Models =
@@ -16,3 +17,15 @@ module Models =
             | _ -> None
 
         let value (MACAddress str) = str
+
+    type VirtualAddress = 
+        | IP of IPAddress
+        | MAC of MACAddress
+
+    let parseVirtualAddress input =
+        match IPAddress.TryParse(input) with
+        | (true, ipAddr) -> Some(VirtualAddress.IP ipAddr)
+        | _ -> 
+            match MACAddress.create input with
+            | Some macAddr -> Some(VirtualAddress.MAC macAddr)
+            | _ -> None
