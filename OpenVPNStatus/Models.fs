@@ -4,6 +4,8 @@ open System
 open System.Net
 open System.Text.RegularExpressions
 
+open NetTools
+
 module Models =
     type MACAddress = private MACAddress of string
 
@@ -20,12 +22,16 @@ module Models =
 
     type VirtualAddress = 
         | IP of IPAddress
+        | IPRange of IPAddressRange
         | MAC of MACAddress
 
-    let parseVirtualAddress input =
-        match IPAddress.TryParse(input) with
+    let parseVirtualAddress (vAddrStr : string) =
+        match IPAddress.TryParse vAddrStr with
         | (true, ipAddr) -> Some(VirtualAddress.IP ipAddr)
         | _ -> 
-            match MACAddress.create input with
+            match MACAddress.create vAddrStr with
             | Some macAddr -> Some(VirtualAddress.MAC macAddr)
-            | _ -> None
+            | _ ->
+                match IPAddressRange.TryParse vAddrStr with
+                | (true, ipRange) -> Some(VirtualAddress.IPRange ipRange)
+                | _ -> None
