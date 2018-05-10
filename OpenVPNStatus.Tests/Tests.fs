@@ -22,6 +22,24 @@ let invalidMACAddresses = [|
     "0A:1B:2C:3D:4E:5G"
 |]
 
+let validRealAddresses = [|
+    "10.10.10.10:49502"
+    "2001:db8::1000:30000"
+|]
+
+let invalidRealAddresses = [|
+    ""
+    "lsfjldshfsl"
+    "10.10.10.10:70000"
+    "10.10.10.10:"
+    ":"
+    "1:"
+    "10.10.10.10"
+    "2001:db8::1000"
+    "2001:db8::1000:"
+    "2001:db8::1000:70000"
+|]
+
 [<Fact>]
 let ``Valid MAC addresses correctly parsed`` () = 
     validMACAddresses 
@@ -68,3 +86,24 @@ let ``Invalid virtual address parsed as None`` () =
     let invalid = "asfhjsjf"
     let virtualAddr = parseVirtualAddress invalid
     Assert.True(virtualAddr.IsNone)
+
+
+[<Fact>]
+let ``Valid real address strings parsed as IPEndPoint`` () = 
+    validRealAddresses 
+    |> Seq.ofArray 
+    |> Seq.iter(fun address ->
+        let realAddress = parseRealAddress address
+        Assert.True(realAddress.IsSome)
+    )
+
+[<Fact>]
+let ``Invalid real address strings parsed as None`` () = 
+    invalidRealAddresses 
+    |> Seq.ofArray 
+    |> Seq.iter(fun address ->
+        let realAddress = parseRealAddress address
+        Assert.True(realAddress.IsNone)
+    )
+
+

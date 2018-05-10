@@ -20,18 +20,46 @@ module Models =
 
         let value (MACAddress str) = str
 
+    let (|MACAddress|_|) str =
+        match MACAddress.create str with
+        | Some(macaddr) -> Some(macaddr)
+        | _ -> None
+
+    let (|IPAddress|_|) str =
+        match IPAddress.TryParse str with
+        | (true, ipAddr) -> Some(ipAddr)
+        | _ -> None
+
+    let (|IPAddressRange|_|) str =
+        match IPAddressRange.TryParse str with
+        | (true, ipRange) -> Some(ipRange)
+        | _ -> None
+
+    let (|Port|_|) str =
+        match Int32.TryParse str with
+        | (true, p) when (p > IPEndPoint.MinPort) && (p < IPEndPoint.MaxPort) -> Some p
+        | _ -> None
+
     type VirtualAddress = 
         | IP of IPAddress
         | IPRange of IPAddressRange
         | MAC of MACAddress
 
-    let parseVirtualAddress (vAddrStr : string) =
-        match IPAddress.TryParse vAddrStr with
-        | (true, ipAddr) -> Some(VirtualAddress.IP ipAddr)
-        | _ -> 
-            match MACAddress.create vAddrStr with
-            | Some macAddr -> Some(VirtualAddress.MAC macAddr)
-            | _ ->
-                match IPAddressRange.TryParse vAddrStr with
-                | (true, ipRange) -> Some(VirtualAddress.IPRange ipRange)
-                | _ -> None
+    let parseVirtualAddress str =
+        match str with
+        | IPAddress i -> Some(VirtualAddress.IP i)
+        | MACAddress m -> Some(VirtualAddress.MAC m)
+        | IPAddressRange r -> Some(VirtualAddress.IPRange r)
+        | _ -> None
+
+    let parseRealAddress (addrStr : string) =
+        match addrStr.LastIndexOf(":") with
+        | index when index >= 0 ->
+
+            let hostStr = addrStr.Substring(0, index)
+            let portStr = addrStr.Substring(index + 1, addrStr.Length - index - 1)
+
+            match hostStr, portStr with
+            | IPAddress i, Port p -> Some(new IPEndPoint(i, p))
+            | _ -> None
+        | _ -> None
