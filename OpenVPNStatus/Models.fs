@@ -1,10 +1,12 @@
 namespace OpenVPNStatus
 
 open System
+open System.Collections.Generic
 open System.Net
 open System.Text.RegularExpressions
 
 open NetTools
+open System.Globalization
 
 module Models =
     type MACAddress = private MACAddress of string
@@ -52,6 +54,9 @@ module Models =
         | IPAddressRange r -> Some(VirtualAddress.IPRange r)
         | _ -> None
 
+    let (|IsVirtualAddress|_|) str =
+        parseVirtualAddress str
+
     let parseRealAddress (addrStr : string) =
         match addrStr.LastIndexOf(":") with
         | index when index >= 0 ->
@@ -62,4 +67,64 @@ module Models =
             match hostStr, portStr with
             | IPAddress i, Port p -> Some(new IPEndPoint(i, p))
             | _ -> None
+        | _ -> None
+
+    let (|RealAddress|_|) str =
+        parseRealAddress str
+
+    let (|Int|_|) str =
+        match Int32.TryParse str with
+        | (true, x) -> Some(x)
+        | _ -> None
+    
+    let (|LogDateTime|_|) str =
+        let format = "ddd MMM dd hh:mm:ss yyyy" 
+        let provider = CultureInfo.InvariantCulture;
+        let style = DateTimeStyles.None
+
+        match DateTime.TryParseExact(str, format, provider, style) with
+        | (true, datetime) -> Some(datetime)
+        | _ -> None
+
+    type Client = {
+        CommonName: String;
+        RealAddress: IPEndPoint;
+        BytesReceived: int;
+        BytesSent: int;
+        ConnectedSince: DateTime;
+    }
+
+    type Route = {
+        VirtualAddress: VirtualAddress
+        CommonName: String;
+        RealAddress: IPEndPoint;
+        LastRef: DateTime;
+    }
+
+    type GlobalStats = {
+        MaxBcastMcastQueueLength: int
+    }
+
+
+    let parseClientRow (row : string) =
+        match row.Split ',' with
+        | [| commonName; RealAddress r; Int bytesRx; Int bytesTx; LogDateTime t|] ->
+            Some { 
+                CommonName = commonName
+                RealAddress = r
+                BytesReceived = bytesRx
+                BytesSent = bytesTx
+                ConnectedSince = t
+            }
+        | _ -> None
+
+    let parseRouteRow (row : string) =
+        match row.Split ',' with
+        | [| IsVirtualAddress v; commonName; RealAddress r; LogDateTime t|] ->
+            Some { 
+                VirtualAddress = v
+                CommonName = commonName
+                RealAddress = r
+                LastRef = t
+            }
         | _ -> None

@@ -15,31 +15,6 @@ let validMACAddresses = [|
     "11:11:11:11:11:11"
 |]
 
-let invalidMACAddresses = [|
-    ""
-    "lsfjldshfsl"
-    "0A:1B:2C:3D:4E"
-    "0A:1B:2C:3D:4E:5G"
-|]
-
-let validRealAddresses = [|
-    "10.10.10.10:49502"
-    "2001:db8::1000:30000"
-|]
-
-let invalidRealAddresses = [|
-    ""
-    "lsfjldshfsl"
-    "10.10.10.10:70000"
-    "10.10.10.10:"
-    ":"
-    "1:"
-    "10.10.10.10"
-    "2001:db8::1000"
-    "2001:db8::1000:"
-    "2001:db8::1000:70000"
-|]
-
 [<Fact>]
 let ``Valid MAC addresses correctly parsed`` () = 
     validMACAddresses 
@@ -50,6 +25,13 @@ let ``Valid MAC addresses correctly parsed`` () =
         let mac = mac.Value
         Assert.Equal(MACAddress.value mac, address)
     )
+
+let invalidMACAddresses = [|
+    ""
+    "lsfjldshfsl"
+    "0A:1B:2C:3D:4E"
+    "0A:1B:2C:3D:4E:5G"
+|]
 
 [<Fact>]
 let ``Invalid MAC addresses return None`` () = 
@@ -84,8 +66,16 @@ let ``IP range parsed as VirtualAddress.IPRange`` () =
 [<Fact>]
 let ``Invalid virtual address parsed as None`` () = 
     let invalid = "asfhjsjf"
-    let virtualAddr = parseVirtualAddress invalid
-    Assert.True(virtualAddr.IsNone)
+    let success = 
+        match invalid with
+        | IsVirtualAddress _ -> false
+        | _ -> true
+    Assert.True(success)
+
+let validRealAddresses = [|
+    "10.10.10.10:49502"
+    "2001:db8::1000:30000"
+|]
 
 
 [<Fact>]
@@ -93,17 +83,81 @@ let ``Valid real address strings parsed as IPEndPoint`` () =
     validRealAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let realAddress = parseRealAddress address
-        Assert.True(realAddress.IsSome)
+        let success = 
+            match address with
+            | RealAddress _ -> true
+            | _ -> false
+        Assert.True(success)
     )
+
+let invalidRealAddresses = [|
+    ""
+    "lsfjldshfsl"
+    "10.10.10.10:70000"
+    "10.10.10.10:"
+    ":"
+    "1:"
+    "10.10.10.10"
+    "2001:db8::1000"
+    "2001:db8::1000:"
+    "2001:db8::1000:70000"
+|]
 
 [<Fact>]
 let ``Invalid real address strings parsed as None`` () = 
     invalidRealAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let realAddress = parseRealAddress address
-        Assert.True(realAddress.IsNone)
+        let success = 
+            match address with
+            | RealAddress _ -> false
+            | _ -> true
+        Assert.True(success)
     )
 
+[<Fact>]
+let ``Valid client row parsed as Client`` () = 
+    let clientString = "foo@example.com,10.10.10.10:49502,334948,1973012,Thu Jun 18 04:23:03 2015"
+    let clientOption = parseClientRow clientString
+    Assert.True(clientOption.IsSome)
 
+let invalidClientRows = [|
+    ""
+    ",,,,"
+    "foo@example.com,,334948,1973012,Thu Jun 18 04:23:03 2015"
+    "foo@example.com,10.10.10.10:49502,,1973012,Thu Jun 18 04:23:03 2015"
+    "foo@example.com,10.10.10.10:49502,334948,,Thu Jun 18 04:23:03 2015"
+    "foo@example.com,10.10.10.10:49502,334948,1973012,"
+|]
+
+[<Fact>]
+let ``Invalid client rows parsed as None`` () = 
+    invalidClientRows 
+    |> Seq.ofArray 
+    |> Seq.iter(fun row ->
+        let clientOption = parseClientRow row
+        Assert.True(clientOption.IsNone)
+    )
+
+[<Fact>]
+let ``Valid route row parsed as Route`` () = 
+    let routeRow = "192.168.255.118,baz@example.com,10.10.10.10:63414,Thu Jun 18 08:12:09 2015"
+    let routeOption = parseRouteRow routeRow
+    Assert.True(routeOption.IsSome)
+
+let invalidRouteRows = [|
+    ""
+    ",,,,"
+    ",baz@example.com,10.10.10.10:63414,Thu Jun 18 08:12:09 2015"
+    "192.168.255.118,baz@example.com,,Thu Jun 18 08:12:09 2015"
+    "192.168.255.118,baz@example.com,10.10.10.10:63414,"
+|]
+
+[<Fact>]
+let ``Invalid route rows parsed as None`` () = 
+    invalidRouteRows 
+    |> Seq.ofArray 
+    |> Seq.iter(fun row ->
+        let routeOption = parseRouteRow row
+        Assert.True(routeOption.IsNone)
+    )
