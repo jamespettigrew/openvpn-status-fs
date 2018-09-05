@@ -115,6 +115,44 @@ let ``Invalid real address strings parsed as None`` () =
         Assert.True(success)
     )
 
+let validDateTimes = [|
+    "Thu Jun 18 04:23:03 2015"
+    "Thu Oct 19 20:14:19 2017"
+    "Sun Aug 05 03:54:21 2012"
+|]
+
+
+[<Fact>]
+let ``Valid DateTimes parsed`` () = 
+    validDateTimes 
+    |> Seq.ofArray 
+    |> Seq.iter(fun dateTime ->
+        let success = 
+            match dateTime with
+            | LogDateTime _ -> true
+            | _ -> false
+        Assert.True(success)
+    )
+
+let invalidDateTimes = [|
+    ""
+    "asdfsadf"
+    "Sin Oct 19 20:14:21 2013"
+    "Thu Jun 18 04:23:03"
+|]
+
+[<Fact>]
+let ``Invalid DateTimes parsed as None`` () = 
+    invalidDateTimes 
+    |> Seq.ofArray 
+    |> Seq.iter(fun dateTime ->
+        let success = 
+            match dateTime with
+            | LogDateTime _ -> false
+            | _ -> true
+        Assert.True(success)
+    )
+
 [<Fact>]
 let ``Valid client row parsed as Client`` () = 
     let clientString = "foo@example.com,10.10.10.10:49502,334948,1973012,Thu Jun 18 04:23:03 2015"
