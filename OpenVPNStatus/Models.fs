@@ -1,14 +1,13 @@
 namespace OpenVPNStatus
 
-open System
-open System.Collections.Generic
-open System.Net
-open System.Text.RegularExpressions
-
-open NetTools
-open System.Globalization
-
 module Models =
+    open System
+    open System.Globalization
+    open System.Net
+    open System.Text.RegularExpressions
+
+    open NetTools
+
     type MACAddress = private MACAddress of string
 
     module MACAddress =
@@ -105,26 +104,9 @@ module Models =
         MaxBcastMcastQueueLength: int
     }
 
-
-    let parseClientRow (row : string) =
-        match row.Split ',' with
-        | [| commonName; RealAddress r; Int bytesRx; Int bytesTx; LogDateTime t|] ->
-            Some { 
-                CommonName = commonName
-                RealAddress = r
-                BytesReceived = bytesRx
-                BytesSent = bytesTx
-                ConnectedSince = t
-            }
-        | _ -> None
-
-    let parseRouteRow (row : string) =
-        match row.Split ',' with
-        | [| IsVirtualAddress v; commonName; RealAddress r; LogDateTime t|] ->
-            Some { 
-                VirtualAddress = v
-                CommonName = commonName
-                RealAddress = r
-                LastRef = t
-            }
-        | _ -> None
+    type StatusLog = {
+        Updated: DateTime
+        Clients: List<Client>
+        Routes: List<Route>
+        GlobalStats: GlobalStats
+    }

@@ -22,4 +22,8 @@
     <ProjectReference Include="..\OpenVPNStatus\OpenVPNStatus.fsproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include=".\data\**" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
 </Project>

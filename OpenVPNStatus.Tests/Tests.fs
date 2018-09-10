@@ -1,12 +1,9 @@
 module OpenVPNStatus.Tests
 
-open System
-open System.Net
 open Xunit
 
-open NetTools
 open OpenVPNStatus.Models
-
+open OpenVPNStatus.Parser
 let validMACAddresses = [|
     "00:1A:2B:3C:4D:5E"
     "00:1a:2b:3c:4d:5e"
@@ -198,4 +195,47 @@ let ``Invalid route rows parsed as None`` () =
     |> Seq.iter(fun row ->
         let routeOption = parseRouteRow row
         Assert.True(routeOption.IsNone)
+    )
+
+let validLogFilePaths = [|
+    "./data/valid/1.log"
+    "./data/valid/2.log"
+|]
+
+let isOk = function
+| Ok _ -> (true, "")
+| Error msg -> (false, msg)
+
+[<Fact>]
+let ``Valid logs parsed without error`` () =
+    validLogFilePaths 
+    |> Seq.ofArray 
+    |> Seq.iter(fun filePath ->
+        let logResult = parse filePath
+        let (ok, msg) = isOk logResult
+        Assert.True(ok, msg)
+    )
+
+let invalidLogFilePaths = [|
+    "./data/invalid/1.log"
+    "./data/invalid/2.log"
+    "./data/invalid/3.log"
+    "./data/invalid/4.log"
+    "./data/invalid/5.log"
+    "./data/invalid/6.log"
+    "./data/invalid/7.log"
+    "./data/invalid/8.log"
+    "./data/invalid/9.log"
+    "./data/invalid/10.log"
+    "./data/invalid/11.log"
+|]
+
+[<Fact>]
+let ``Invalid logs parsed with error`` () = 
+    invalidLogFilePaths 
+    |> Seq.ofArray 
+    |> Seq.iter(fun filePath ->
+        let logResult = parse filePath
+        let (ok, msg) = isOk logResult
+        Assert.False(ok, msg)
     )
