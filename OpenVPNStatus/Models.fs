@@ -77,9 +77,9 @@ module Models =
         | _ -> None
     
     let (|LogDateTime|_|) str =
-        let format = "ddd MMM dd HH:mm:ss yyyy" 
+        let format = "ddd MMM d HH:mm:ss yyyy" 
         let provider = CultureInfo.InvariantCulture;
-        let style = DateTimeStyles.None
+        let style = DateTimeStyles.AllowWhiteSpaces
 
         match DateTime.TryParseExact(str, format, provider, style) with
         | (true, datetime) -> Some(datetime)
