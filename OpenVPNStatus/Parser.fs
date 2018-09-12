@@ -86,7 +86,7 @@ module internal Parser =
         | (true, datetime) -> Some(datetime)
         | _ -> None
 
-    let parseClientListHeader (log : LogContents, rows : Memory<string>) =
+    let parseClientListHeader (log, rows : Memory<string>) =
         match tryGetIndex rows 0 with
         | Some("OpenVPN CLIENT LIST") -> Ok (log, rows.Slice(1))
         | Some(row) -> Error (sprintf "Invalid client list header: %s" row)
@@ -142,7 +142,7 @@ module internal Parser =
 
     let parseEnd (log, rows : Memory<string>) =
         match tryGetIndex rows 0 with
-        | Some("END") -> Ok (log : LogContents)
+        | Some("END") -> Ok log
         | Some(row) -> Error (sprintf "Invalid END line: %s" row)
         | _ -> Error "Unexpected EOF"
 
