@@ -202,7 +202,6 @@ let validLogFilePaths = [|
     "./data/valid/1.log"
     "./data/valid/2.log"
     "./data/valid/3.log"
-    "./data/valid/4.log"
 |]
 
 let isOk = function
