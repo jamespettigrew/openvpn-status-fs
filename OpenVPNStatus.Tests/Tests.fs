@@ -2,8 +2,9 @@ module OpenVPNStatus.Tests
 
 open Xunit
 
-open OpenVPNStatus.Models
+open OpenVPNStatus
 open OpenVPNStatus.Parser
+
 let validMACAddresses = [|
     "00:1A:2B:3C:4D:5E"
     "00:1a:2b:3c:4d:5e"
@@ -17,10 +18,10 @@ let ``Valid MAC addresses correctly parsed`` () =
     validMACAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let mac = MACAddress.create address
+        let mac = MACAddress.Create address
         Assert.True(mac.IsSome)
         let mac = mac.Value
-        Assert.Equal(MACAddress.value mac, address)
+        Assert.Equal(mac.Value, address)
     )
 
 let invalidMACAddresses = [|
@@ -35,7 +36,7 @@ let ``Invalid MAC addresses return None`` () =
     invalidMACAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let mac = MACAddress.create address
+        let mac = MACAddress.Create address
         Assert.True(mac.IsNone)
     )
 
@@ -65,7 +66,7 @@ let ``Invalid virtual address parsed as None`` () =
     let invalid = "asfhjsjf"
     let success = 
         match invalid with
-        | IsVirtualAddress _ -> false
+        | VirtualAddress _ -> false
         | _ -> true
     Assert.True(success)
 

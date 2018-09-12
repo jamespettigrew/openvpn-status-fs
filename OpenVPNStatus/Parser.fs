@@ -1,8 +1,83 @@
 namespace OpenVPNStatus
 
-module Parser =
+module internal Parser =
     open System
-    open Models
+    open System.Globalization
+    open System.Net
+    open System.Runtime.CompilerServices
+
+    open NetTools
+
+    open OpenVPNStatus
+
+    [<assembly: InternalsVisibleTo("OpenVPNStatus.Tests")>]
+    do()
+
+    type LogContents = {
+        Updated: DateTime
+        Clients: Client list
+        Routes: Route list
+        GlobalStats: GlobalStats
+    }
+
+    let (|MACAddress|_|) str =
+        match MACAddress.Create str with
+        | Some(macaddr) -> Some(macaddr)
+        | _ -> None
+
+    let (|IPAddress|_|) str =
+        match IPAddress.TryParse str with
+        | (true, ipAddr) -> Some(ipAddr)
+        | _ -> None
+
+    let (|IPAddressRange|_|) str =
+        match IPAddressRange.TryParse str with
+        | (true, ipRange) -> Some(ipRange)
+        | _ -> None
+
+    let (|Port|_|) str =
+        match Int32.TryParse str with
+        | (true, p) when (p > IPEndPoint.MinPort) && (p < IPEndPoint.MaxPort) -> Some p
+        | _ -> None
+
+    let parseVirtualAddress str =
+        match str with
+        | IPAddress i -> Some(VirtualAddress.IP i)
+        | MACAddress m -> Some(VirtualAddress.MAC m)
+        | IPAddressRange r -> Some(VirtualAddress.IPRange r)
+        | _ -> None
+
+    let (|VirtualAddress|_|) str =
+        parseVirtualAddress str
+
+    let parseRealAddress (addrStr : string) =
+        match addrStr.LastIndexOf(":") with
+        | index when index >= 0 ->
+
+            let hostStr = addrStr.Substring(0, index)
+            let portStr = addrStr.Substring(index + 1, addrStr.Length - index - 1)
+
+            match hostStr, portStr with
+            | IPAddress i, Port p -> Some(new IPEndPoint(i, p))
+            | _ -> None
+        | _ -> None
+
+    let (|RealAddress|_|) str =
+        parseRealAddress str
+
+    let (|Int|_|) str =
+        match Int32.TryParse str with
+        | (true, x) -> Some(x)
+        | _ -> None
+    
+    let (|LogDateTime|_|) str =
+        let format = "ddd MMM d HH:mm:ss yyyy" 
+        let provider = CultureInfo.InvariantCulture;
+        let style = DateTimeStyles.AllowWhiteSpaces
+
+        match DateTime.TryParseExact(str, format, provider, style) with
+        | (true, datetime) -> Some(datetime)
+        | _ -> None
 
     let parseClientListHeader (log, rows) =
         match rows with
@@ -71,7 +146,7 @@ module Parser =
 
     let parseRouteRow (row : string) =
         match row.Split ',' with
-        | [| IsVirtualAddress v; commonName; RealAddress r; LogDateTime t|] ->
+        | [| VirtualAddress v; commonName; RealAddress r; LogDateTime t|] ->
             Some { 
                 VirtualAddress = v
                 CommonName = commonName
@@ -117,14 +192,14 @@ module Parser =
         bind f m
 
     let parseRows rows =
-        let emptyLog = { 
+        let log : LogContents = { 
             Updated = DateTime.Now
             Clients = List.empty<Client>
             Routes = List.empty<Route>
             GlobalStats = { MaxBcastMcastQueueLength = 0 }
-        }
+        } 
 
-        parseClientListHeader (emptyLog, rows)
+        parseClientListHeader (log, rows)
         >>= parseUpdated
         >>= parseClientColumnHeaders
         >>= parseClients
