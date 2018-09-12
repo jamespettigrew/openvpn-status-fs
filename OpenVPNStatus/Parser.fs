@@ -2,6 +2,7 @@ namespace OpenVPNStatus
 
 module internal Parser =
     open System
+    open System.Collections.Generic
     open System.Globalization
     open System.Net
     open System.Runtime.CompilerServices
@@ -15,10 +16,16 @@ module internal Parser =
 
     type LogContents = {
         Updated: DateTime
-        Clients: Client list
-        Routes: Route list
+        Clients: IReadOnlyCollection<Client>
+        Routes: IReadOnlyCollection<Route>
         GlobalStats: GlobalStats
     }
+
+    let tryGetIndex (s : Memory<'T>) i =
+        match i with
+        | x when x <= (s.Length - 1) -> 
+            Some(s.Span.[i])
+        | _ -> None
 
     let (|MACAddress|_|) str =
         match MACAddress.Create str with
@@ -79,58 +86,65 @@ module internal Parser =
         | (true, datetime) -> Some(datetime)
         | _ -> None
 
-    let parseClientListHeader (log, rows) =
-        match rows with
-        | "OpenVPN CLIENT LIST" :: rest -> Ok (log, rest)
-        | _ -> Error "Invalid client list header"
+    let parseClientListHeader (log : LogContents, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some("OpenVPN CLIENT LIST") -> Ok (log, rows.Slice(1))
+        | Some(row) -> Error (sprintf "Invalid client list header: %s" row)
+        | _ -> Error "Unexpected EOF"
 
-    let parseUpdated (log, rows) =
-        match rows with
-        | (h : string) :: rest ->
-            match h.Split ',' with
-            | [|"Updated"; LogDateTime time; |] -> Ok ({ log with Updated = time }, rest)
-            | _ -> Error (sprintf "Invalid Updated line: %s" h)
-        | _ -> Error "Invalid Updated line"
+    let parseUpdated (log, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some(row) ->
+            match row.Split ',' with
+            | [|"Updated"; LogDateTime time; |] -> 
+                Ok ({ log with Updated = time }, rows.Slice(1))
+            | _ -> Error (sprintf "Invalid Updated line: %s" row)
+        | _ -> Error "Unexpected EOF"
 
-    let parseClientColumnHeaders (log, rows) =
-        match rows with
-        | "Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since" :: rest -> 
-            Ok (log, rest)
-        | _ -> Error "Invalid client list columns headers"
+    let parseClientColumnHeaders (log, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some("Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since") -> 
+            Ok (log, rows.Slice(1))
+        | Some(row) -> Error (sprintf "Invalid client list columns header: %s" row)
+        | _ -> Error "Unexpected EOF"
 
     let parseRoutingTableHeader line =
         match line with
         | "ROUTING TABLE" -> Some ()
         | _ -> None
 
-    let parseRouteColumnHeaders (log, rows) =
-        match rows with
-        | "Virtual Address,Common Name,Real Address,Last Ref" :: rest -> Ok (log, rest)
-        | _ -> Error "Invalid route list column headers"
+    let parseRouteColumnHeaders (log, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some("Virtual Address,Common Name,Real Address,Last Ref") -> 
+            Ok (log, rows.Slice(1))
+        | Some(row) -> Error (sprintf "Invalid route list column header: %s" row)
+        | _ -> Error "Unexpected EOF" 
 
     let parseGlobalStatsHeader line =
         match line with
         | "GLOBAL STATS" -> Some ()
         | _ -> None
 
-    let parseGlobalStatsRow (line: string) =
-        match line.Split ',' with
+    let parseGlobalStatsRow (row: string) =
+        match row.Split ',' with
         | [|"Max bcast/mcast queue length"; Int length; |] -> 
             Some { MaxBcastMcastQueueLength = length }
         | _ -> None
 
-    let parseGlobalStats (log, rows) =
-        match rows with
-        | h :: rest ->
-            match parseGlobalStatsRow h with
-            | Some globalStats -> Ok ({ log with GlobalStats = globalStats }, rest)
-            | None -> Error (sprintf "Invalid Global Stats line: %s" h)
-        | _ -> Error "Invalid Global Stats line"
+    let parseGlobalStats (log, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some(row) ->
+            match parseGlobalStatsRow row with
+            | Some globalStats ->
+                Ok ({ log with GlobalStats = globalStats }, rows.Slice(1))
+            | None -> Error (sprintf "Invalid Global Stats line: %s" row)
+        | _ -> Error "Unexpected EOF"
 
-    let parseEnd (log, rows) =
-        match rows with
-        | "END" :: _ -> Ok log
-        | _ -> Error "Invalid END line"
+    let parseEnd (log, rows : Memory<string>) =
+        match tryGetIndex rows 0 with
+        | Some("END") -> Ok (log : LogContents)
+        | Some(row) -> Error (sprintf "Invalid END line: %s" row)
+        | _ -> Error "Unexpected EOF"
 
     let parseClientRow (row : string) =
         match row.Split ',' with
@@ -155,33 +169,39 @@ module internal Parser =
             }
         | _ -> None
 
-    let rec parseClients (log, rows) =
-        match rows with
-        | h :: rest ->
-            match (parseRoutingTableHeader h) with
-            | Some _ -> Ok (log, rest)
-            | None ->
-                match parseClientRow h  with
+    let parseClients (log, rows) =
+        let rec loop (clients : List<Client>, rows) = 
+            match tryGetIndex rows 0 with
+            | Some(row) ->
+                match parseClientRow row  with
                 | Some client ->
-                    let updatedClients = List.append log.Clients [client]
-                    let logWithClientAdded = { log with Clients = updatedClients }
-                    parseClients (logWithClientAdded, rest)
-                | _ -> Error (sprintf "Invalid client line: %s" h)
-        | _ -> Error "Invalid clients list"
+                    clients.Add(client)
+                    loop (clients, rows.Slice(1))
+                | _ -> 
+                    match (parseRoutingTableHeader row) with
+                    | Some _ -> 
+                        let clients = clients.AsReadOnly()
+                        Ok ({ log with Clients = clients }, rows.Slice(1))
+                    | None -> Error (sprintf "Invalid client line: %s" row)
+            | _ -> Error "Unexpected EOF"
+        loop (new List<Client>(), rows)
 
-    let rec parseRoutes (log, rows) =
-        match rows with
-        | h :: rest ->
-            match (parseGlobalStatsHeader h) with
-            | Some _ -> Ok (log, rest)
-            | None ->
-                match parseRouteRow h with
+    let parseRoutes (log, rows) =
+        let rec loop (routes : List<Route>, rows) =
+            match tryGetIndex rows 0 with
+            | Some(row) ->
+                match parseRouteRow row with
                 | Some route ->
-                    let updatedRoutes = List.append log.Routes [route]
-                    let logWithRouteAdded = { log with Routes = updatedRoutes }
-                    parseRoutes (logWithRouteAdded, rest)
-                | _ -> Error (sprintf "Invalid route line: %s" h)
-        | _ -> Error "Invalid routes list"
+                    routes.Add(route)
+                    loop (routes, rows.Slice(1))
+                | _ -> 
+                    match (parseGlobalStatsHeader row) with
+                    | Some _ ->
+                        let routes = routes.AsReadOnly() 
+                        Ok ({ log with Routes = routes }, rows.Slice(1))
+                    | None -> Error (sprintf "Invalid route line: %s" row)
+            | _ -> Error "Unexpected EOF"
+        loop (new List<Route>(), rows)
 
     let bind switchFunction twoTrackInput = 
         match twoTrackInput with
@@ -191,14 +211,14 @@ module internal Parser =
     let ( >>= ) m f =
         bind f m
 
-    let parseRows rows =
+    let parseRows (rows : Memory<string>) =
         let log : LogContents = { 
             Updated = DateTime.Now
             Clients = List.empty<Client>
             Routes = List.empty<Route>
             GlobalStats = { MaxBcastMcastQueueLength = 0 }
         } 
-
+    
         parseClientListHeader (log, rows)
         >>= parseUpdated
         >>= parseClientColumnHeaders
@@ -210,4 +230,4 @@ module internal Parser =
 
     let parse filePath =
         let readLines = System.IO.File.ReadAllLines(filePath)
-        parseRows (readLines |> Array.toList)
+        parseRows (Memory readLines)
