@@ -1,16 +1,16 @@
 
-namespace OpenVPNStatus
+namespace OpenVpnStatusSharp
 
 open System
 open System.Collections.Generic
 open System.Runtime.InteropServices
 
-open OpenVPNStatus
-open OpenVPNStatus.Parser
+open OpenVpnStatusSharp
+open OpenVpnStatusSharp.Parser
 
 type ParseException (msg:string) = inherit Exception(msg)
 
-type StatusLog = {
+type OpenVpnStatusLog = {
         Updated: DateTime
         Clients: IReadOnlyCollection<Client>
         Routes: IReadOnlyCollection<Route>
@@ -28,9 +28,9 @@ with
             }
         | Error msg -> raise (ParseException(msg))
 
-    static member TryParse(filePath : string, [<Out>] result : StatusLog byref ) =
+    static member TryParse(filePath : string, [<Out>] result : OpenVpnStatusLog byref ) =
         try
-            result <- StatusLog.Parse filePath
+            result <- OpenVpnStatusLog.Parse filePath
             true
         with
         | _ -> false

@@ -1,4 +1,4 @@
-namespace OpenVPNStatus
+namespace OpenVpnStatusSharp
 
 open System
 open System.Net
@@ -7,13 +7,13 @@ open System.Text.RegularExpressions
 
 open NetTools
 
-type MACAddress private(str) =
+type MacAddress private(str) =
     static member Create str = 
         match Regex.IsMatch(
             str, 
             "(([0-9a-f]{2})[:]){5}([0-9a-f]{2})",
             RegexOptions.IgnoreCase) with
-        | true -> Some(MACAddress str)
+        | true -> Some(MacAddress str)
         | _ -> None
 
     member this.Value = str
@@ -21,7 +21,7 @@ type MACAddress private(str) =
 type VirtualAddress = 
     | IP of IPAddress
     | IPRange of IPAddressRange
-    | MAC of MACAddress
+    | Mac of MacAddress
 with
     member this.TryGetIPAddress( [<Out>] result : IPAddress byref ) =
         match this with
@@ -37,9 +37,9 @@ with
             true
         | _ -> false
 
-    member this.TryGetMACAddress( [<Out>] result : MACAddress byref ) =
+    member this.TryGetMacAddress( [<Out>] result : MacAddress byref ) =
         match this with
-        | MAC mac ->
+        | Mac mac ->
             result <- mac
             true
         | _ -> false

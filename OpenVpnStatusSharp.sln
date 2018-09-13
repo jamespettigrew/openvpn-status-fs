@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OpenVPNStatus", "OpenVPNStatus\OpenVPNStatus.fsproj", "{4999A0EC-6BED-4D34-97F9-3BEA3A2FF854}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OpenVpnStatusSharp", "OpenVpnStatusSharp\OpenVpnStatusSharp.fsproj", "{4999A0EC-6BED-4D34-97F9-3BEA3A2FF854}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OpenVPNStatus.Tests", "OpenVPNStatus.Tests\OpenVPNStatus.Tests.fsproj", "{13216EEA-B5A5-4518-B205-D79C5AF3E1B2}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OpenVpnStatusSharp.Tests", "OpenVpnStatusSharp.Tests\OpenVpnStatusSharp.Tests.fsproj", "{13216EEA-B5A5-4518-B205-D79C5AF3E1B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,4 +1,4 @@
-namespace OpenVPNStatus
+namespace OpenVpnStatusSharp
 
 module internal Parser =
     open System
@@ -9,9 +9,9 @@ module internal Parser =
 
     open NetTools
 
-    open OpenVPNStatus
+    open OpenVpnStatusSharp
 
-    [<assembly: InternalsVisibleTo("OpenVPNStatus.Tests")>]
+    [<assembly: InternalsVisibleTo("OpenVpnStatusSharp.Tests")>]
     do()
 
     type LogContents = {
@@ -27,8 +27,8 @@ module internal Parser =
             Some(s.Span.[i])
         | _ -> None
 
-    let (|MACAddress|_|) str =
-        match MACAddress.Create str with
+    let (|MacAddress|_|) str =
+        match MacAddress.Create str with
         | Some(macaddr) -> Some(macaddr)
         | _ -> None
 
@@ -50,7 +50,7 @@ module internal Parser =
     let parseVirtualAddress str =
         match str with
         | IPAddress i -> Some(VirtualAddress.IP i)
-        | MACAddress m -> Some(VirtualAddress.MAC m)
+        | MacAddress m -> Some(VirtualAddress.Mac m)
         | IPAddressRange r -> Some(VirtualAddress.IPRange r)
         | _ -> None
 

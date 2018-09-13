@@ -6,7 +6,7 @@
   <ItemGroup>
     <Compile Include="Models.fs" />
     <Compile Include="Parser.fs" />
-    <Compile Include="OpenVPNStatus.fs" />
+    <Compile Include="Library.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="IPAddressRange" Version="3.2.0" />

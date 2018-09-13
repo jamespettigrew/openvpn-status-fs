@@ -1,11 +1,11 @@
-module OpenVPNStatus.Tests
+module OpenVpnStatusSharp.Tests
 
 open Xunit
 
-open OpenVPNStatus
-open OpenVPNStatus.Parser
+open OpenVpnStatusSharp
+open OpenVpnStatusSharp.Parser
 
-let validMACAddresses = [|
+let validMacAddresses = [|
     "00:1A:2B:3C:4D:5E"
     "00:1a:2b:3c:4d:5e"
     "AA:BB:CC:DD:EE:FF"
@@ -15,16 +15,16 @@ let validMACAddresses = [|
 
 [<Fact>]
 let ``Valid MAC addresses correctly parsed`` () = 
-    validMACAddresses 
+    validMacAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let mac = MACAddress.Create address
+        let mac = MacAddress.Create address
         Assert.True(mac.IsSome)
         let mac = mac.Value
         Assert.Equal(mac.Value, address)
     )
 
-let invalidMACAddresses = [|
+let invalidMacAddresses = [|
     ""
     "lsfjldshfsl"
     "0A:1B:2C:3D:4E"
@@ -33,17 +33,17 @@ let invalidMACAddresses = [|
 
 [<Fact>]
 let ``Invalid MAC addresses return None`` () = 
-    invalidMACAddresses 
+    invalidMacAddresses 
     |> Seq.ofArray 
     |> Seq.iter(fun address ->
-        let mac = MACAddress.Create address
+        let mac = MacAddress.Create address
         Assert.True(mac.IsNone)
     )
 
 [<Fact>]
-let ``MAC address parsed as VirtualAddress.MAC`` () = 
-    match parseVirtualAddress validMACAddresses.[0] with
-    | Some(VirtualAddress.MAC _) -> true
+let ``MAC address parsed as VirtualAddress.Mac`` () = 
+    match parseVirtualAddress validMacAddresses.[0] with
+    | Some(VirtualAddress.Mac _) -> true
     | _ -> false
     |> Assert.True
 
